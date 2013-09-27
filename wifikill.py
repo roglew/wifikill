@@ -1,5 +1,8 @@
-from scapy.all import *
+#!/usr/local/bin/python
+
 import time
+import os
+from scapy.all import *
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -23,7 +26,13 @@ def get_lan_ip():
   ip = s.getsockname()
   s.close()
   return ip[0]
-  
+
+# Check for root
+if os.geteuid() != 0:
+  print "You need to run the script as a superuser"
+  exit()
+
+# Search for stuff every time we refresh
 refreshing = True
 while refreshing:
   # Find out what IPs to scan
@@ -44,7 +53,7 @@ while refreshing:
     i+=1
   
   print "Who do you want to fuck?"
-  print "(r - Refresh, a - Kill all)"
+  print "(r - Refresh, a - Kill all, q - quit)"
 
   input_is_valid = False
   killall = False
@@ -60,6 +69,8 @@ while refreshing:
       refreshing = False
     elif choice is 'r':
       input_is_valid = True
+    elif choice is 'q':
+      exit()
     
     if not input_is_valid:
       print 'Please enter a valid choice'
