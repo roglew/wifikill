@@ -1,8 +1,8 @@
 import scan
+import logging
 
-scanner = scan.Scanner()
-scanner.ports = [80]
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
-print scanner.check('10.0.0.1')
-print scanner.check('10.0.0.123')
+print('DO WORK')
+print scan.scan('10.0.0.*')
 
