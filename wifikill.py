@@ -64,7 +64,7 @@ while refreshing:
 
   # Get a list of devices and print them to the screen
   devices = get_ip_macs(ip_range)
-  print "Connected guys:"
+  print "Connected ips:"
   i = 0
   for device in devices:
     print '%s)\t%s\t%s' % (i, device[0], device[1])
