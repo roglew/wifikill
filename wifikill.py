@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+###############################################################################
+#         Wifi Kill                                                           #
+#        Robert Glew                                                          #
+#                                                                             #
+# This python script can be used to kick anyone or everyone off of your wifi  #
+# network. The script must be run as sudo in order to send the required       #
+# packets. Have fun.                                                          #
+###############################################################################
+
 import time
 import os
 from scapy.all import *
